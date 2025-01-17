@@ -8,6 +8,8 @@ document.getElementById('parseButton').addEventListener('click', () => {
         return;
     }
 
+    let allRows = [];
+
     // Проход по всем выбранным файлам
     Array.from(fileInput.files).forEach(file => {
         const reader = new FileReader();
@@ -28,7 +30,7 @@ document.getElementById('parseButton').addEventListener('click', () => {
             const marks = xmlDoc.evaluate(xpath, xmlDoc, (prefix) => namespaces[prefix] || null, XPathResult.ORDERED_NODE_SNAPSHOT_TYPE, null);
 
             if (marks.snapshotLength === 0) {
-                resultsContainer.innerHTML += `<p>В файле <strong>${file.name}</strong> не найдено элементов <code>&lt;ce:amccat&gt;</code>.</p>`;
+                allRows.push(`<p>В файле <strong>${file.name}</strong> не найдено элементов <code>&lt;ce:amccat&gt;</code>.</p>`);
                 return;
             }
 
@@ -54,9 +56,41 @@ document.getElementById('parseButton').addEventListener('click', () => {
             }
 
             tableHtml += '</tbody></table>';
-            resultsContainer.innerHTML += tableHtml;
+            allRows.push(tableHtml);
         };
 
         reader.readAsText(file);
     });
+
+    // После того как все файлы будут обработаны, формируем итоговый HTML файл
+    const downloadHtml = () => {
+        const htmlTemplate = `
+            <!DOCTYPE html>
+            <html lang="en">
+            <head>
+                <meta charset="UTF-8">
+                <meta name="viewport" content="width=device-width, initial-scale=1.0">
+                <title>Результаты парсинга</title>
+                <style>
+                    table { width: 100%; border-collapse: collapse; }
+                    th, td { border: 1px solid black; padding: 8px; text-align: left; }
+                    th { background-color: #f2f2f2; }
+                </style>
+            </head>
+            <body>
+                <h1>Результаты парсинга XML</h1>
+                ${allRows.join('<hr>')}
+            </body>
+            </html>
+        `;
+
+        const blob = new Blob([htmlTemplate], { type: 'text/html' });
+        const link = document.createElement('a');
+        link.href = URL.createObjectURL(blob);
+        link.download = 'parsed_results.html'; // Имя файла для скачивания
+        link.click(); // Имитируем клик по ссылке для скачивания
+    };
+
+    // Когда все файлы обработаны, генерируем HTML для скачивания
+    setTimeout(downloadHtml, 1000); // Задержка, чтобы все файлы успели обработаться
 });
