@@ -1,7 +1,9 @@
 document.getElementById('parseButton').addEventListener('click', () => {
     const fileInput = document.getElementById('fileInput');
     const resultsContainer = document.getElementById('resultsContainer');
+    const downloadButton = document.getElementById('downloadButton');
     resultsContainer.innerHTML = ''; // Очистить старые результаты
+    downloadButton.style.display = 'none'; // Скрыть кнопку скачивания, пока не обработаны файлы
 
     if (fileInput.files.length === 0) {
         alert('Выберите хотя бы один XML-файл!');
@@ -25,9 +27,12 @@ document.getElementById('parseButton').addEventListener('click', () => {
                 ns: 'http://fsrar.ru/WEGAIS/WB_DOC_SINGLE_01'
             };
 
+            // Функция для разрешения пространства имен
+            const nsResolver = (prefix) => namespaces[prefix] || null;
+
             // XPath для поиска элементов <ce:amccat>
             const xpath = "//rst:MarkInfo/ce:amccat";
-            const marks = xmlDoc.evaluate(xpath, xmlDoc, (prefix) => namespaces[prefix] || null, XPathResult.ORDERED_NODE_SNAPSHOT_TYPE, null);
+            const marks = xmlDoc.evaluate(xpath, xmlDoc, nsResolver, XPathResult.ORDERED_NODE_SNAPSHOT_TYPE, null);
 
             if (marks.snapshotLength === 0) {
                 allRows.push(`<p>В файле <strong>${file.name}</strong> не найдено элементов <code>&lt;ce:amccat&gt;</code>.</p>`);
@@ -73,8 +78,8 @@ document.getElementById('parseButton').addEventListener('click', () => {
                 <title>Результаты парсинга</title>
                 <style>
                     table { width: 100%; border-collapse: collapse; }
-                    th, td { border: 1px solid black; padding: 8px; text-align: left; }
-                    th { background-color: #f2f2f2; }
+                    th, td { border: 1px solid #ddd; padding: 8px; text-align: left; }
+                    th { background-color: #f4f4f4; }
                 </style>
             </head>
             <body>
@@ -91,6 +96,9 @@ document.getElementById('parseButton').addEventListener('click', () => {
         link.click(); // Имитируем клик по ссылке для скачивания
     };
 
-    // Когда все файлы обработаны, генерируем HTML для скачивания
-    setTimeout(downloadHtml, 1000); // Задержка, чтобы все файлы успели обработаться
+    // Когда все файлы обработаны, показываем кнопку для скачивания
+    setTimeout(() => {
+        downloadButton.style.display = 'inline-block'; // Показать кнопку скачивания
+        downloadButton.addEventListener('click', downloadHtml);
+    }, 1000); // Задержка, чтобы все файлы успели обработаться
 });
