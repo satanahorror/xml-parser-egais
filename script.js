@@ -20,7 +20,7 @@ document.getElementById('parseButton').addEventListener('click', () => {
             const parser = new DOMParser();
             const xmlDoc = parser.parseFromString(event.target.result, 'application/xml');
 
-            // Определяем пространства имен
+            // Определяем пространство имен
             const namespaces = {
                 rst: 'http://fsrar.ru/WEGAIS/ReplyRestBCode',
                 ce: 'http://fsrar.ru/WEGAIS/CommonV3',
@@ -55,8 +55,10 @@ document.getElementById('parseButton').addEventListener('click', () => {
             for (let i = 0; i < marks.snapshotLength; i++) {
                 const amccat = marks.snapshotItem(i);
 
+                // Применяем правильное пространство имен для элементов <ce:amc> и <ce:amcvol>
                 const amc = amccat.querySelector('ce\\:amc')?.textContent || 'Отсутствует';
                 const amcvol = amccat.querySelector('ce\\:amcvol')?.textContent || 'Полный объём';
+
                 tableHtml += `<tr><td>${amc}</td><td>${amcvol}</td></tr>`;
             }
 
