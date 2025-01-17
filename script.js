@@ -16,17 +16,18 @@ document.getElementById('parseButton').addEventListener('click', () => {
             const parser = new DOMParser();
             const xmlDoc = parser.parseFromString(event.target.result, 'application/xml');
 
-            // Парсинг XML
+            // Определяем пространства имен
             const namespaces = {
                 rst: 'http://fsrar.ru/WEGAIS/ReplyRestBCode',
-                ce: 'http://fsrar.ru/WEGAIS/CommonV3'
+                ce: 'http://fsrar.ru/WEGAIS/CommonV3',
+                ns: 'http://fsrar.ru/WEGAIS/WB_DOC_SINGLE_01'
             };
 
-            const marks = Array.from(
-                xmlDoc.querySelectorAll('rst\\:MarkInfo ce\\:amccat, MarkInfo ce\\:amccat')
-            );
+            // XPath для поиска элементов <ce:amccat>
+            const xpath = "//rst:MarkInfo/ce:amccat";
+            const marks = xmlDoc.evaluate(xpath, xmlDoc, (prefix) => namespaces[prefix] || null, XPathResult.ORDERED_NODE_SNAPSHOT_TYPE, null);
 
-            if (marks.length === 0) {
+            if (marks.snapshotLength === 0) {
                 resultsContainer.innerHTML += `<p>В файле <strong>${file.name}</strong> не найдено элементов <code>&lt;ce:amccat&gt;</code>.</p>`;
                 return;
             }
@@ -44,11 +45,13 @@ document.getElementById('parseButton').addEventListener('click', () => {
                     <tbody>
             `;
 
-            marks.forEach(mark => {
-                const amc = mark.querySelector('ce\\:amc')?.textContent || 'Отсутствует';
-                const amcvol = mark.querySelector('ce\\:amcvol')?.textContent || 'Отсутствует';
+            for (let i = 0; i < marks.snapshotLength; i++) {
+                const amccat = marks.snapshotItem(i);
+
+                const amc = amccat.querySelector('ce\\:amc')?.textContent || 'Отсутствует';
+                const amcvol = amccat.querySelector('ce\\:amcvol')?.textContent || 'Полный объём';
                 tableHtml += `<tr><td>${amc}</td><td>${amcvol}</td></tr>`;
-            });
+            }
 
             tableHtml += '</tbody></table>';
             resultsContainer.innerHTML += tableHtml;
