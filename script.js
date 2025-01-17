@@ -20,6 +20,9 @@ document.getElementById('parseButton').addEventListener('click', () => {
             const parser = new DOMParser();
             const xmlDoc = parser.parseFromString(event.target.result, 'application/xml');
 
+            // Логируем XML для проверки
+            console.log('Парсинг XML: ', xmlDoc);
+
             // Определяем пространство имен
             const namespaces = {
                 rst: 'http://fsrar.ru/WEGAIS/ReplyRestBCode',
@@ -27,43 +30,52 @@ document.getElementById('parseButton').addEventListener('click', () => {
                 ns: 'http://fsrar.ru/WEGAIS/WB_DOC_SINGLE_01'
             };
 
-            // Функция для разрешения пространства имен
-            const nsResolver = (prefix) => namespaces[prefix] || null;
-
             // XPath для поиска элементов <ce:amccat>
-            const xpath = "//rst:MarkInfo/ce:amccat";
-            const marks = xmlDoc.evaluate(xpath, xmlDoc, nsResolver, XPathResult.ORDERED_NODE_SNAPSHOT_TYPE, null);
+            const marks = xmlDoc.getElementsByTagNameNS(namespaces['rst'], 'MarkInfo');
+            let rowsForFile = [];
+            let foundMarks = false;
 
-            if (marks.snapshotLength === 0) {
+            // Логируем количество найденных элементов
+            console.log('Найдено элементов <rst:MarkInfo>: ', marks.length);
+
+            for (let mark of marks) {
+                // Получаем все <ce:amccat> внутри <rst:MarkInfo>
+                const amccats = mark.getElementsByTagNameNS(namespaces['ce'], 'amccat');
+
+                if (amccats.length > 0) {
+                    foundMarks = true;
+
+                    for (let amccat of amccats) {
+                        const amc = amccat.getElementsByTagNameNS(namespaces['ce'], 'amc')[0];
+                        const amcvol = amccat.getElementsByTagNameNS(namespaces['ce'], 'amcvol')[0];
+
+                        // Проверяем, если <ce:amc> и <ce:amcvol> присутствуют
+                        const amcText = amc ? amc.textContent : 'Отсутствует';
+                        const amcvolText = amcvol ? amcvol.textContent : 'Полный объём';
+
+                        rowsForFile.push(`<tr><td>${amcText}</td><td>${amcvolText}</td></tr>`);
+                    }
+                }
+            }
+
+            if (foundMarks) {
+                allRows.push(`
+                    <h2>Результаты для файла: ${file.name}</h2>
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>Марка</th>
+                                <th>Объём</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            ${rowsForFile.join('')}
+                        </tbody>
+                    </table>
+                `);
+            } else {
                 allRows.push(`<p>В файле <strong>${file.name}</strong> не найдено элементов <code>&lt;ce:amccat&gt;</code>.</p>`);
-                return;
             }
-
-            // Генерация таблицы
-            let tableHtml = `
-                <h2>Результаты для файла: ${file.name}</h2>
-                <table>
-                    <thead>
-                        <tr>
-                            <th>Марка</th>
-                            <th>Объём</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-            `;
-
-            for (let i = 0; i < marks.snapshotLength; i++) {
-                const amccat = marks.snapshotItem(i);
-
-                // Применяем правильное пространство имен для элементов <ce:amc> и <ce:amcvol>
-                const amc = amccat.querySelector('ce\\:amc')?.textContent || 'Отсутствует';
-                const amcvol = amccat.querySelector('ce\\:amcvol')?.textContent || 'Полный объём';
-
-                tableHtml += `<tr><td>${amc}</td><td>${amcvol}</td></tr>`;
-            }
-
-            tableHtml += '</tbody></table>';
-            allRows.push(tableHtml);
         };
 
         reader.readAsText(file);
@@ -98,7 +110,7 @@ document.getElementById('parseButton').addEventListener('click', () => {
         link.click(); // Имитируем клик по ссылке для скачивания
     };
 
-    // Когда все файлы обработаны, показываем кнопку для скачивания
+    // Когда все файлы будут обработаны, показываем кнопку для скачивания
     setTimeout(() => {
         downloadButton.style.display = 'inline-block'; // Показать кнопку скачивания
         downloadButton.addEventListener('click', downloadHtml);
